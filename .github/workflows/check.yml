@@ -3,7 +3,7 @@ name: Daily Checkin
 on:
   # 每天北京时间 9:00 运行 (UTC 1:00)
   schedule:
-    - cron: '0 1 * * *'
+    - cron: '12 0 * * *'
   # 允许手动触发
   workflow_dispatch:
 
