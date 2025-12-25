@@ -26,10 +26,35 @@ jobs:
 
       - name: Run daily checkin
         env:
-          # 这里引用刚才设置的 Secret，映射为环境变量
-          config: ${{ secrets.CONFIG }}
+          # 1. 把 Secret 映射到环境变量
+          IQIYI_COOKIE: ${{ secrets.IQIYI_COOKIE }}
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_USER_ID: ${{ secrets.TG_USER_ID }}
         run: |
-          # 假设项目支持从环境变量读取配置，或者需要写脚本将 env 写入 config.json
-          # 大部分签到脚本需要这一步：
-          echo $config > config.json
+          # 2. 使用 Python 脚本生成 config.json
+          # 这样做的好处是不用担心 Cookie 里有特殊字符导致 Shell 脚本报错
+          python -c "
+          import os, json
+          
+          # 构造配置字典
+          config_data = {
+              'TG_BOT_TOKEN': os.environ.get('TG_BOT_TOKEN', ''),
+              'TG_USER_ID': os.environ.get('TG_USER_ID', ''),
+              'IQIYI': [
+                  {
+                      'cookie': os.environ.get('IQIYI_COOKIE', '')
+                  }
+              ]
+          }
+          
+          # 写入文件
+          with open('config.json', 'w') as f:
+              json.dump(config_data, f)
+          "
+          
+          # 3. 检查生成的 json 是否合法 (可选调试用，会暴露部分信息，正式跑建议删掉下面这行 cat)
+          # cat config.json 
+          
+          # 4. 运行签到 (记得用 -m 模式)
           python -m dailycheckin.main --include IQIYI
+
