@@ -32,4 +32,4 @@ jobs:
           # 假设项目支持从环境变量读取配置，或者需要写脚本将 env 写入 config.json
           # 大部分签到脚本需要这一步：
           echo $config > config.json
-          python dailycheckin/main.py
+          python dailycheckin/main.py --include IQIYI
