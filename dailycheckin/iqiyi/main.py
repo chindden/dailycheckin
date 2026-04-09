@@ -142,10 +142,30 @@ class IQIYI(CheckIn):
         return {"status": False, "msg": msg, "chance": 0}
 
     def level_right(self, p00001):
-        data = {"code": "k8sj74234c683f", "P00001": p00001}
-        res = requests.post(url="https://act.vip.iqiyi.com/level-right/receive", data=data).json()
-        msg = res["msg"]
-        return [{"name": "V7 免费升级星钻", "value": msg}]
+        """
+        先查询是否已经为星钻VIP（此处假设 level >= 7 为星钻），
+        如果是：返回有效期；
+        否则：请求升级接口并返回升级结果。
+        """
+        try:
+            # 先查询当前账号信息
+            url = "http://serv.vip.iqiyi.com/vipgrowth/query.action"
+            params = {"P00001": p00001}
+            res = requests.get(url=url, params=params).json()
+            if res.get("code") == "A00000":
+                data = res.get("data", {})
+                level = int(data.get("level", 0))
+                deadline = data.get("deadline", "未知")
+                # 假设 level >= 7 为星钻VIP；如需更精确判断可在此修改
+                if level >= 7:
+                    return [{"name": "V7 免费升级星钻", "value": f"已是星钻VIP，有效期: {deadline}"}]
+            # 如果不是星钻或者查询失败，则尝试调用升级接口
+            data = {"code": "k8sj74234c683f", "P00001": p00001}
+            res2 = requests.post(url="https://act.vip.iqiyi.com/level-right/receive", data=data).json()
+            msg = res2.get("msg", str(res2))
+            return [{"name": "V7 免费升级星钻", "value": msg}]
+        except Exception as e:
+            return [{"name": "V7 免费升级星钻", "value": f"操作异常: {e}"}]
 
     def give_times(self, p00001):
         url = "https://pcell.iqiyi.com/lotto/giveTimes"
@@ -186,15 +206,10 @@ class IQIYI(CheckIn):
             user_name = "未获取到，请检查 Cookie 中 P00002 字段"
         _user_msg = self.user_information(p00001=p00001)
         lotto_lottery_msg = self.lotto_lottery(p00001=p00001)
-        if _user_msg[4].get("value") != "非 VIP 用户":
-            level_right_msg = self.level_right(p00001=p00001)
-        else:
-            level_right_msg = [
-                {
-                    "name": "V7 免费升级星钻",
-                    "value": "非 VIP 用户",
-                }
-            ]
+
+        # 统一调用：让 level_right 自行判断是否是星钻并做相应操作
+        level_right_msg = self.level_right(p00001=p00001)
+
         chance = self.draw(draw_type=0, p00001=p00001, p00003=p00003)["chance"]
         lottery_msgs = self.lottery(p00001=p00001, award_list=[])
         if chance:
